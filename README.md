@@ -9,6 +9,7 @@ Just add some IP addres into the `*.txt` files and run this command:
 python punisher.py -g gateways.txt -t targets.txt -e excludes.txt -i 2
 ```
 While running the script, type `quit` and press `Enter` to end the process
+
 For more information, please run:
 ```sh
 python punisher.py --help
