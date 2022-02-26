@@ -10,6 +10,19 @@ SENT_PACKETS = 0
 SEMAPHORE = 1
 DOWN = threading.Event()
 
+def scan_mac(mac, net):
+    mac = to_dict(mac)
+    arp_request = scapy.Ether(dst='ff:ff:ff:ff:ff:ff') / scapy.ARP(op='who-has', pdst=net)
+    ans, unans = scapy.srp(arp_request, timeout=3, verbose=False)
+    clients = {x[1].psrc: {'ip': x[1].psrc, 'mac': x[1].hwsrc,} for x in ans if x[1].hwsrc in mac}
+    return clients
+
+def scan_mac_get_ip(mac, net):
+    mac = to_dict(mac)
+    arp_request = scapy.Ether(dst='ff:ff:ff:ff:ff:ff') / scapy.ARP(op='who-has', pdst=net)
+    ans, unans = scapy.srp(arp_request, timeout=3, verbose=False)
+    clients = [x[1].psrc for x in ans if x[1].hwsrc in mac]
+    return clients
 
 def scan(ip):
     arp_request = scapy.Ether(dst='ff:ff:ff:ff:ff:ff') / scapy.ARP(op='who-has', pdst=ip)
@@ -38,8 +51,13 @@ def update_clients(args):
             clients = {}
             for target in args.target:
                 clients.update(scan(target))
+            for net in args.subnet:
+                clients.update(scan_mac(args.target_mac, net)) 
             exclude_ips = get_own_ips()
             exclude_ips = exclude_ips + args.gateway + args.exclude
+            for net in args.subnet:
+                scanned_mac = scan_mac_get_ip(args.exclude_mac, net)    
+                exclude_ips = exclude_ips + scanned_mac
             for ip in exclude_ips:
                 if ip in clients:
                     del clients[ip]
@@ -105,20 +123,30 @@ def read_file(file):
         pass
     return ret
 
+def to_dict(lst):
+    res = {lst[i]: True for i in range(len(lst))}
+    return res
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument('-s', '--subnet', default=None, help='path to file contains subnets')
     parser.add_argument('-g', '--gateway', default=None, help='path to file contains gateway IP')
     parser.add_argument('-t', '--target', default=None, help='path to file contains target IP')
     parser.add_argument('-e', '--exclude', default=None, help='path to file contains IP to be excluded')
+    parser.add_argument('-tm', '--target-mac', default=None, help='path to file contains target MAC')
+    parser.add_argument('-em', '--exclude-mac', default=None, help='path to file contains MAC to be excluded')
     parser.add_argument('-i', '--interval',  default=10, type=float, help='time interval to send ARP packets')
     args = parser.parse_args()
     assert(args.gateway is not None and args.target is not None)
     try:
         t_start = time.time()
+        args.subnet = read_file(args.subnet)
         args.gateway = read_file(args.gateway)
         args.target = read_file(args.target)
         args.exclude = read_file(args.exclude)
+        args.target_mac = read_file(args.target_mac)
+        args.exclude_mac = read_file(args.exclude_mac)
         t0 = threading.Thread(target=disarm, args=())
         t1 = threading.Thread(target=update_clients, args=(args,))
         t2 = threading.Thread(target=sucker_punch, args=(args,))

@@ -6,7 +6,7 @@ Not much, just install `python 3.6+` and `scapy` then everything is done
 ## Usage
 Just add some IP addres into the `*.txt` files and run this command:
 ```sh
-python punisher.py -g gateways.txt -t targets.txt -e excludes.txt -i 2
+python punisher.py -s subnets.txt -g gateways.txt -t targets.txt -e excludes.txt -tm target_macs.txt -em exclude_macs.txt -i 2
 ```
 While running the script, type `quit` and press `Enter` to end the process
 
