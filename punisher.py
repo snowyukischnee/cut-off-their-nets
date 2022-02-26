@@ -138,7 +138,7 @@ if __name__ == "__main__":
     parser.add_argument('-em', '--exclude-mac', default=None, help='path to file contains MAC to be excluded')
     parser.add_argument('-i', '--interval',  default=10, type=float, help='time interval to send ARP packets')
     args = parser.parse_args()
-    assert(args.gateway is not None and args.target is not None)
+    assert(args.gateway is not None and (args.target is not None or args.target_mac is not None))
     try:
         t_start = time.time()
         args.subnet = read_file(args.subnet)
